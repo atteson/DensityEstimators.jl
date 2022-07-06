@@ -34,7 +34,9 @@ end
 FFTKernelDensityEstimator( dist::T, h::Float64 ) where {T} =
     FFTKernelDensityEstimator( dist, h, Float64[], LinRange( 0.0, 0.0, 0 ), Float64[] );
 
-function StatsBase.fit( estimator::FFTKernelDensityEstimator{T}, data::AbstractVector{Float64}; bits=14 ) where {T}
+function StatsBase.fit( estimator::FFTKernelDensityEstimator{T}, data::AbstractVector{Float64};
+                        bits = 14,
+                        ) where {T}
     dist = estimator.dist
     h = estimator.h
 
@@ -48,11 +50,20 @@ function StatsBase.fit( estimator::FFTKernelDensityEstimator{T}, data::AbstractV
     @assert( sum(hist.weights) == n )
     w = hist.weights./n;
 
-    range2 = LinRange((3*m-M)/2, (3*M-m)/2, 2*N+1)
-    centers2 = (range2[1:end-1] + range2[2:end])/2
-    d = pdf.( dist, centers./h )./h;
+    # choose width of convolution kernel; assume symmetry
+    tolerance = eps(pdf( dist, 0.0 ))
+    dx = (range.stop - range.start)/range.len
+    factor = 1
+    while pdf( dist, factor*dx/h )/h > tolerance
+        factor *= 2
+    end
 
-    estimates = conv( d, w )[N:2*N-1]; # center could be off by 1
+    bound = factor*dx
+    range2 = LinRange(-bound, bound, factor*2)
+    centers2 = (range2[1:end-1] + range2[2:end])/2
+    d = pdf.( dist, centers2./h )./h;
+    
+    estimates = conv( d, w )[factor:factor+N-1];
     @assert(!any(estimates.<0))
 
     return FFTKernelDensityEstimator( dist, h, data, centers, estimates )
