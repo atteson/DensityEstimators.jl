@@ -1,12 +1,16 @@
 module DensityEstimators
 
+using Random
 using Distributions
 using StatsBase
 using DSP
 
 export BruteForceKernelDensityEstimator, FFTKernelDensityEstimator
 
-struct BruteForceKernelDensityEstimator{T <: Distribution{Univariate,Continuous}} <: Distribution{Univariate,Continuous}
+abstract type AbstractKernelDensityEstimator{T <: Distribution{Univariate,Continuous}} <: Distribution{Univariate,Continuous}
+end
+
+struct BruteForceKernelDensityEstimator{T} <: AbstractKernelDensityEstimator{T}
     dist::T
     h::Float64
     data::Vector{Float64}
@@ -17,13 +21,13 @@ BruteForceKernelDensityEstimator( dist::T, h::Float64 ) where {T} = BruteForceKe
 StatsBase.fit( estimator::BruteForceKernelDensityEstimator{T}, data::AbstractVector{Float64} ) where {T} =
     BruteForceKernelDensityEstimator( estimator.dist, estimator.h, data )
 
-Distributions.pdf( kde::BruteForceKernelDensityEstimator{T}, x::Float64 ) where {T <: Distribution{Univariate,Continuous}} =
+Distributions.pdf( kde::BruteForceKernelDensityEstimator{T}, x::Float64 ) where {T} = 
     mean( pdf.( kde.dist, (x .- kde.data)./kde.h )./kde.h )
     
-Distributions.cdf( kde::BruteForceKernelDensityEstimator{T}, x::Float64 ) where {T <: Distribution{Univariate,Continuous}} =
+Distributions.cdf( kde::BruteForceKernelDensityEstimator{T}, x::Float64 ) where {T} =
     mean( cdf.( kde.dist, (x .- kde.data)./kde.h ) )
 
-struct FFTKernelDensityEstimator{T <: Distribution{Univariate,Continuous}} <: Distribution{Univariate,Continuous}
+struct FFTKernelDensityEstimator{T} <: AbstractKernelDensityEstimator{T}
     dist::T
     h::Float64
     data::Vector{Float64}
@@ -51,12 +55,8 @@ function StatsBase.fit( estimator::FFTKernelDensityEstimator{T}, data::AbstractV
     w = hist.weights./n;
 
     # choose width of convolution kernel; assume symmetry
-    tolerance = eps(pdf( dist, 0.0 ))
     dx = (range.stop - range.start)/range.len
-    factor = 1
-    while pdf( dist, factor*dx/h )/h > tolerance
-        factor *= 2
-    end
+    factor = N >> 1
 
     bound = factor*dx
     range2 = LinRange(-bound, bound, factor*2)
@@ -69,7 +69,7 @@ function StatsBase.fit( estimator::FFTKernelDensityEstimator{T}, data::AbstractV
     return FFTKernelDensityEstimator( dist, h, data, centers, estimates )
 end
 
-function Distributions.pdf( kde::FFTKernelDensityEstimator{T}, x::Float64 ) where {T <: Distribution{Univariate,Continuous}}
+function Distributions.pdf( kde::FFTKernelDensityEstimator{T}, x::Float64 ) where {T}
     centers = kde.centers
     estimates = kde.estimates
     r = searchsorted( centers, x )
@@ -78,6 +78,12 @@ function Distributions.pdf( kde::FFTKernelDensityEstimator{T}, x::Float64 ) wher
     end
     lambda = (x - centers[r.stop])/(centers[r.start] - centers[r.stop])
     return estimates[r.stop] + lambda * (estimates[r.start] - estimates[r.stop])
+end
+
+function Random.rand!( rng::AbstractRNG, kde::AbstractKernelDensityEstimator{T}, v::AbstractArray{Float64} ) where {T}
+    for i = 1:length(v)
+        v[i] = rand( rng, kde.data ) + kde.h * rand( rng, kde.dist )
+    end
 end
 
 end
