@@ -25,6 +25,8 @@ fft = FFTKernelDensityEstimator( dist, h )
 plot!( p, r, ffty, label="", size=[1000,800] )
 
 maximum(abs.(bfy - ffty))
+mean(abs.(bfy - ffty))
+sqrt(mean((bfy - ffty).^2))
 
 emp = ecdf( x )
 p = plot( r, emp.(r), label="", size=[1000,800] )
