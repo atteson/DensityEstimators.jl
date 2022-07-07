@@ -18,8 +18,8 @@ p = histogram( x, normalize=:pdf, fillalpha=0.0, size=[1000,800] )
 @time bfy = pdf.( bf, r );
 plot!( p, r, bfy, label="" )
 
-fft = FFTKernelDensityEstimator( dist, h, bits=20 )
-@time fft = fit( fft, x );
+fft = FFTKernelDensityEstimator( dist, h )
+@time fft = fit( fft, x, bits=20 );
 
 @time ffty = pdf.( fft, r );
 plot!( p, r, ffty, label="", size=[1000,800] )
