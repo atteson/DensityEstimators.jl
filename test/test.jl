@@ -41,5 +41,10 @@ p = plot( r, emp.(r), label="", size=s )
 @time y = cdf.( bf, r )
 plot!( p, r, y, label="" )
 
-
-
+c = CantorDistribution();
+N = 1_000_000
+Random.seed!(1)
+@time x = rand( c, N );
+@assert( !any((x .> 1/3) .& (x .< 2/3)) );
+@assert( !any((x .> 1/9) .& (x .< 2/9)) );
+@assert( !any((x .> 7/9) .& (x .< 8/9)) );
