@@ -102,4 +102,15 @@ function Random.rand!( rng::AbstractRNG, kde::AbstractKernelDensityEstimator{T},
     end
 end
 
+function KS( dist::Distribution, x::AbstractVector{Float64} )
+    m = 0.0
+    n = length(x)
+    x = sort( x )
+    for i in 1:n
+        c = cdf( dist, x[i] )
+        m = max( m, abs( c - i/n ), abs( c - (i-1)/n ) )
+    end
+    return m
+end
+
 end
