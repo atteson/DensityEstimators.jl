@@ -84,4 +84,12 @@ for i = 1:length(hs)
     accuracies[3,i] = maximum(abs.(bfy - ffty))
 end
 
-accuracies[2,:]
+dist = Normal()
+h = 1e-6
+Random.seed!(1)
+
+x = rand( dist, 100 );
+bf = BruteForceKernelDensityEstimator(dist,h)
+bf = fit( bf, x )
+
+DensityEstimators.KS( bf, x )
