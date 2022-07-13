@@ -85,11 +85,18 @@ for i = 1:length(hs)
 end
 
 dist = Normal()
-h = 1e-6
+h = 1e-4
 Random.seed!(1)
 
 x = rand( dist, 100 );
 bf = BruteForceKernelDensityEstimator(dist,h)
 bf = fit( bf, x )
 
-DensityEstimators.KS( bf, x )
+kses = Float64[]
+for i = 1:1_000
+    y = rand( bf, 100 )
+    push!( kses, KS( bf, y ) )
+end
+
+mean(kses .> KS( bf, x ))
+KS( bf, x )

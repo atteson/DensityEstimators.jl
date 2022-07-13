@@ -8,7 +8,7 @@ using StatsBase
 using DSP
 using Interpolations
 
-export BruteForceKernelDensityEstimator, FFTKernelDensityEstimator
+export BruteForceKernelDensityEstimator, FFTKernelDensityEstimator, KS
 
 abstract type AbstractKernelDensityEstimator{T <: Distribution{Univariate,Continuous}} <: Distribution{Univariate,Continuous}
 end
@@ -96,11 +96,8 @@ end
 
 Distributions.pdf( kde::FFTKernelDensityEstimator{T}, x::Float64 ) where {T} = kde.interpolator( x )
 
-function Random.rand!( rng::AbstractRNG, kde::AbstractKernelDensityEstimator{T}, v::AbstractArray{Float64} ) where {T}
-    for i = 1:length(v)
-        v[i] = rand( rng, kde.data ) + kde.h * rand( rng, kde.dist )
-    end
-end
+Base.rand( rng::AbstractRNG, kde::AbstractKernelDensityEstimator{T} ) where {T} =
+    rand( rng, kde.data ) + kde.h * rand( rng, kde.dist )
 
 function KS( dist::Distribution, x::AbstractVector{Float64} )
     m = 0.0
