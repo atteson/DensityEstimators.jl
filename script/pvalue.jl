@@ -53,7 +53,48 @@ plot!( p, r, qs, label="refit p-value" )
 
 savefig( "p-values.png" )
 
-
-
 kses = [KS( dist, rand( dist, n ) ) for i in 1:1_000];
 mean(KS( dist, x ) .<= kses)
+
+function findh( dist, x, p; significance=0.01, tolerance=0.01, h0 = 1.0 )
+    n = length(x)
+    q = -quantile( Normal(), significance/2 )
+    n = Int(ceil(p*(1-p)*(q/tolerance)^2))
+
+    h = h0
+    hip = 0.0
+    lop = 1.0
+    hih = 0.0
+    loh = Inf
+    currp = pvalue( dist, h, x, n )
+    while lop > p || hip < p || abs(currp - p) < tolerance
+        if currp < p
+            lop = currp
+            loh = h
+            h = h/2
+        else
+            hip = currp
+            hih = h
+            h = h*2
+        end
+        currp = pvalue( dist, h, x, n )
+    end
+
+    while abs(currp - p) >= tolerance
+        h = (loh + hih)/2
+        currp = pvalue( dist, h, x, n )
+        if currp > p
+            hip = currp
+            hih = h
+        else
+            lop = currp
+            loh = h
+        end
+    end
+    return h
+end
+
+Random.seed!(1)
+findh( dist, x, 0.5 )
+
+
