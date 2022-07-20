@@ -1,6 +1,7 @@
 module DensityEstimators
 
 include( "CantorDistribution.jl" )
+include( "formulas.jl" )
 
 using Random
 using Distributions
