@@ -3,6 +3,7 @@ using Random
 using Distributions
 using Plots
 using StatsBase
+using Dates
 
 dist = Normal()
 Random.seed!(1)
@@ -20,6 +21,35 @@ end
 plot( collect(hes), kses, label="", yaxis=:log, xaxis=:log )
 
 findmin(kses)
+
+
+hes = 2.0 .^ (-20:3)
+kses = Vector{Float64}[]
+N = 1_000
+@time for h in hes
+    println( "Running h = $h at $(now())" )
+    bf = BruteForceKernelDensityEstimator(dist,h)
+    bf = fit( bf, x )
+    ks = Float64[]
+    for i = 1:N
+        y = rand( bf, n )
+        push!( ks, KS( bf, y ) )
+    end
+    push!( kses, sort(ks) )
+end
+p = plot( size=[1000,800] )
+[plot!( p, ks, collect((1:N)/N), label="" ) for ks in kses]
+display(p)
+
+r = 0.006:0.001:0.2
+@time exact = noeks.( dist, n, r );
+plot!( p, collect(r), exact, label="", linecolor=:black, linewidth=2 )
+display(p)
+
+@time exact2 = noeks.( Uniform(), n, r );
+@assert(minimum(abs(exact - exact2)) < 1e-8)
+
+savefig( p, joinpath( homedir(), "invariance.png" ) )
 
 function pvalue( dist, h, x, N; refit = false )
     bf = BruteForceKernelDensityEstimator(dist,h)

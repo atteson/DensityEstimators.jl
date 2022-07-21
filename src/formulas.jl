@@ -1,6 +1,10 @@
-export noi
+export noe, noeks
 
-function noi( dist, a, b )
+using SpecialFunctions
+
+Base.binomial( n::Float64, m::Float64 ) = gamma( n + 1 )/(gamma( m + 1 ) * gamma( n - m + 1 ))
+
+function noe( dist, a, b )
     @assert( issorted( a ) )
     @assert( issorted( b ) )
     n = length(a)
@@ -45,7 +49,7 @@ function noi( dist, a, b )
         for i = (h[m+1]-1):g[m]
             s = 0.0
             for k = (h[m]-1):i
-                s += binomial( i, k ) * Q[ k+1, m ] * p[m]^(i-k)
+                s += binomial( Float64(i), Float64(k) ) * Q[ k+1, m ] * p[m]^(i-k)
             end
             Q[i+1, m+1] = s
         end
@@ -53,5 +57,10 @@ function noi( dist, a, b )
     return Q[n+1, 2*n+1]
 end
 
+function noeks( dist, n, x )
+    a = quantile.( dist, max.((1:n)/n .- x,0) )
+    b = quantile.( dist, min.((0:n-1)/n .+ x,1) )
+    return noe( dist, a, b )
+end
 
 
