@@ -18,7 +18,7 @@ kses = Float64[]
     bf = fit( bf, x )
     push!( kses, KS( bf, x ) )
 end
-plot( collect(hes), kses, label="", yaxis=:log, xaxis=:log )
+plot( collect(hes), kses, ylims=[0,1], label="", xaxis=:log, leftmargin=30*Plots.px )
 
 findmin(kses)
 
@@ -47,20 +47,22 @@ plot!( p, collect(r), exact, label="", linecolor=:black, linewidth=2 )
 display(p)
 
 @time exact2 = noeks.( Uniform(), n, r );
-@assert(minimum(abs(exact - exact2)) < 1e-8)
+@assert(minimum(abs.(exact - exact2)) < 1e-8)
 
 savefig( p, joinpath( homedir(), "invariance.png" ) )
 
-function pvalue( dist, h, x, N; refit = false )
-    bf = BruteForceKernelDensityEstimator(dist,h)
+function pvalue( dist, h, x, N; refit = false, actual = false )
+    bf = BruteForceKernelDensityEstimator( dist, h )
     bf = fit( bf, x )
     ks = KS( bf, x )
     count = 0
     n = length(x)
     for i = 1:N
-        y = rand( bf, n )
+        y = rand( actual ? dist : bf, n )
         if refit
             bf1 = fit( bf, y )
+        elseif actual
+            bf1 = dist
         else
             bf1 = bf
         end
@@ -75,11 +77,12 @@ h = hes[1]
 r = 1.005 .^ (-250:150);
 
 @time ps = pvalue.( dist, r, [x], 1_000 );
-[r ps]
-p = plot( r, ps, label="p-value" )
-
 @time qs = pvalue.( dist, r, [x], 1_000, refit=true );
+@time as = pvalue.( dist, r, [x], 1_000, actual=true );
+
+p = plot( r, ps, label="simulated p-value", size=[1000,800], leftmargin=20*Plots.px )
 plot!( p, r, qs, label="refit p-value" )
+plot!( p, r, as, label="actual p-value" )
 
 savefig( "p-values.png" )
 
@@ -127,4 +130,21 @@ end
 Random.seed!(1)
 findh( dist, x, 0.5 )
 
+
+p = plot( 0:0.001:1, 0:0.001:1, label="exact", size=[1000,800], framestyle=:box, ylims=[0,1], xlims=[0,1], legend_position=:bottomright )
+u = Uniform()
+for n in [10, 20, 50, 100, 200]
+    r0 = 1/(2*n) + eps(Float64)
+    prob = noeks( u, n, r0 )
+    rinf = r0
+    while prob[end] < 0.999
+        rinf *= 2
+        prob = noeks( u, n, rinf )
+    end
+    r = r0:(rinf-r0)/1000:rinf
+    @time exact = noeks.(u, n, r );
+    @time kolmogorov = cdf.( Kolmogorov(), sqrt(n).*r );
+    plot!( p, exact, kolmogorov, label="$n" )
+end
+display(p)
 

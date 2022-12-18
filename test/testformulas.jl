@@ -30,3 +30,23 @@ b = max.( u, v )
 @assert( abs(mean([all(a .< sort(rand( dist, length(a) )) .<= b) for i in 1:10_000_000]) / noe( dist, a, b ) - 1) < 0.005 )
 
 @time noeks( dist, 100, 0.1 )
+
+n = 2
+x = 0.4
+noeks( dist, n, x )
+
+u = min.( (0:n-1)./n .+ x, 1 )
+l = max.( (1:n)./n .- x, 0 )
+
+l[1] * l[2] * u[1]*u[2] - u[1]^2 - l[1]*u[2]
+
+noe( dist, quantile.( dist, l ), quantile.( dist, u ) )
+
+
+n = 1000
+x = 0.02
+@time exact = noeks( Uniform(), n, x )
+
+@time kolmogorov = cdf( Kolmogorov(), x * sqrt(n) )
+
+abs(kolmogorov/exact - 1)

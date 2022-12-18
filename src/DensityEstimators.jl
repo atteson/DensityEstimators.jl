@@ -97,6 +97,12 @@ end
 
 Distributions.pdf( kde::FFTKernelDensityEstimator{T}, x::Float64 ) where {T} = kde.interpolator( x )
 
+function Distributions.cdf( kde::FFTKernelDensityEstimator{T}, x::Float64 ) where {T}
+    k = collect(knots(kde.interpolator))
+    p = collect(kde.interpolator.itp)
+    searchsorted.( (k,), x )
+end
+
 Base.rand( rng::AbstractRNG, kde::AbstractKernelDensityEstimator{T} ) where {T} =
     rand( rng, kde.data ) + kde.h * rand( rng, kde.dist )
 
